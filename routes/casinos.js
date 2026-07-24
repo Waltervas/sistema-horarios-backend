@@ -10,10 +10,19 @@ router.get('/', auth(), async (req, res) => {
 });
 
 router.post('/', auth(['Administrador']), async (req, res) => {
-  const { empresa_id, nombre } = req.body;
+  const { empresa_id, nombre, ciudad } = req.body;
   const { rows } = await db.query(
-    'INSERT INTO casinos (empresa_id, nombre) VALUES ($1,$2) RETURNING *',
-    [empresa_id, nombre]
+    'INSERT INTO casinos (empresa_id, nombre, ciudad) VALUES ($1,$2,$3) RETURNING *',
+    [empresa_id, nombre, ciudad || null]
+  );
+  res.json(rows[0]);
+});
+
+router.put('/:id', auth(['Administrador']), async (req, res) => {
+  const { nombre, ciudad } = req.body;
+  const { rows } = await db.query(
+    'UPDATE casinos SET nombre=$1, ciudad=$2 WHERE id=$3 RETURNING *',
+    [nombre, ciudad || null, req.params.id]
   );
   res.json(rows[0]);
 });

@@ -110,7 +110,14 @@ router.delete('/:id', auth(['RRHH','Administrador']), async (req, res) => {
 
 // Obtener un horario por id (para portal de firma pública)
 router.get('/:id', async (req, res) => {
-  const { rows: [h] } = await db.query('SELECT * FROM horarios WHERE id=$1', [req.params.id]);
+  const { rows: [h] } = await db.query(
+    `SELECT h.*, c.nombre as casino_nombre, e.nombre as empresa_nombre
+     FROM horarios h
+     LEFT JOIN casinos  c ON c.id = h.casino_id
+     LEFT JOIN empresas e ON e.id = h.empresa_id
+     WHERE h.id=$1`,
+    [req.params.id]
+  );
   if (!h) return res.status(404).json({ error: 'No encontrado' });
   const { rows: filas } = await db.query(
     'SELECT * FROM horario_filas WHERE horario_id=$1 ORDER BY orden,id', [req.params.id]
