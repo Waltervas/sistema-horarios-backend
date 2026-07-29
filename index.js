@@ -12,6 +12,7 @@ app.use('/api/casinos',  require('./routes/casinos'));
 app.use('/api/usuarios', require('./routes/usuarios'));
 app.use('/api/horarios', require('./routes/horarios'));
 app.use('/api/logs',     require('./routes/logs'));
+app.use('/api/roles',    require('./routes/roles'));
 
 app.get('/api/health', (req, res) => res.json({ ok: true }));
 

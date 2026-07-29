@@ -1,6 +1,7 @@
 const router = require('express').Router();
 const db     = require('../db');
-const auth   = require('../middleware/auth');
+const auth    = require('../middleware/auth');
+const permiso = require('../middleware/permiso');
 
 // Listar horarios con sus filas
 router.get('/', auth(), async (req, res) => {
@@ -33,7 +34,7 @@ router.get('/', auth(), async (req, res) => {
 });
 
 // Crear horario
-router.post('/', auth(['Casino','RRHH']), async (req, res) => {
+router.post('/', auth(), permiso('horarios_registro','crear'), async (req, res) => {
   const { empleado_nombre, empleado_documento, empleado_cargo,
           empresa_id, casino_id, quincena_year, quincena_mes,
           quincena_q, quincena_key, sig_admin, rows } = req.body;
@@ -63,7 +64,11 @@ router.post('/', auth(['Casino','RRHH']), async (req, res) => {
 });
 
 // Actualizar horario (RRHH edita)
-router.put('/:id', auth(['RRHH','Administrador']), async (req, res) => {
+router.put('/:id', auth(), (req,res,next)=>{
+  const p=req.user?.permisos?.horarios_registro||{};
+  if(!p.editar && !p.liquidar) return res.status(403).json({error:'Sin permiso para esta acción'});
+  next();
+}, async (req, res) => {
   const { empleado_nombre, empleado_documento, empleado_cargo,
           empresa_id, casino_id, estado, sig_admin, sig_empleado, rows } = req.body;
 
@@ -95,15 +100,21 @@ router.put('/:id', auth(['RRHH','Administrador']), async (req, res) => {
 // Firma del empleado (portal público — sin auth)
 router.patch('/:id/firma-empleado', async (req, res) => {
   const { sig_empleado } = req.body;
-  await db.query(
-    'UPDATE horarios SET sig_empleado=$1 WHERE id=$2',
+  const { rows: [h] } = await db.query(
+    'UPDATE horarios SET sig_empleado=$1 WHERE id=$2 RETURNING empleado_nombre',
     [sig_empleado, req.params.id]
   );
+  if (h) {
+    await db.query(
+      'INSERT INTO logs (tipo, descripcion, detalle, usuario, horario_id) VALUES ($1,$2,$3,$4,$5)',
+      ['firma-emp', `Firma recibida — horario #${req.params.id}`, `Empleado: ${h.empleado_nombre}`, 'Empleado (portal)', req.params.id]
+    );
+  }
   res.json({ ok: true });
 });
 
 // Eliminar
-router.delete('/:id', auth(['RRHH','Administrador']), async (req, res) => {
+router.delete('/:id', auth(), permiso('horarios_registro','eliminar'), async (req, res) => {
   await db.query('DELETE FROM horarios WHERE id = $1', [req.params.id]);
   res.json({ ok: true });
 });
