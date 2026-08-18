@@ -63,10 +63,18 @@ router.post('/', auth(), permiso('horarios_registro','crear'), async (req, res) 
   res.json(h);
 });
 
-// Actualizar horario (RRHH edita)
-router.put('/:id', auth(), (req,res,next)=>{
+// Actualizar horario (RRHH edita / liquida)
+router.put('/:id', auth(), async (req,res,next)=>{
   const p=req.user?.permisos?.horarios_registro||{};
-  if(!p.editar && !p.liquidar) return res.status(403).json({error:'Sin permiso para esta acción'});
+  const { rows: [actual] } = await db.query('SELECT estado FROM horarios WHERE id=$1', [req.params.id]);
+  if (!actual) return res.status(404).json({ error: 'Horario no encontrado' });
+  const pasaALiquidado = req.body.estado === 'Liquidado' && actual.estado !== 'Liquidado';
+  if (pasaALiquidado) {
+    if (!p.liquidar) return res.status(403).json({ error: 'Sin permiso para liquidar' });
+  } else {
+    if (actual.estado === 'Liquidado') return res.status(403).json({ error: 'Este horario ya está liquidado y no se puede modificar' });
+    if (!p.editar) return res.status(403).json({ error: 'Sin permiso para esta acción' });
+  }
   next();
 }, async (req, res) => {
   const { empleado_nombre, empleado_documento, empleado_cargo,
