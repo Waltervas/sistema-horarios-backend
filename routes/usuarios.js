@@ -26,7 +26,7 @@ async function setEmpresaIds(usuarioId, empresaIds) {
 
 router.get('/', auth(), permiso('usuarios','ver'), async (req, res) => {
   const { rows } = await db.query(
-    `SELECT u.id, u.usuario, u.rol, u.empresa_id, u.casino_id,
+    `SELECT u.id, u.usuario, u.rol, u.empresa_id, u.casino_id, u.nombre, u.apellido, u.cargo, u.correo,
             COALESCE(array_agg(ue.empresa_id) FILTER (WHERE ue.empresa_id IS NOT NULL), '{}') as empresa_ids
      FROM usuarios u
      LEFT JOIN usuario_empresas ue ON ue.usuario_id = u.id
@@ -37,33 +37,33 @@ router.get('/', auth(), permiso('usuarios','ver'), async (req, res) => {
 });
 
 router.post('/', auth(), permiso('usuarios','crear'), async (req, res) => {
-  const { usuario, password, rol, empresa_id, casino_id, empresa_ids } = req.body;
+  const { usuario, password, rol, empresa_id, casino_id, empresa_ids, nombre, apellido, cargo, correo } = req.body;
   const hash = await bcrypt.hash(password, 10);
   const { rows } = await db.query(
-    `INSERT INTO usuarios (usuario, password_hash, rol, empresa_id, casino_id)
-     VALUES ($1,$2,$3,$4,$5) RETURNING id, usuario, rol, empresa_id, casino_id`,
-    [usuario, hash, rol, empresa_id || null, casino_id || null]
+    `INSERT INTO usuarios (usuario, password_hash, rol, empresa_id, casino_id, nombre, apellido, cargo, correo)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING id, usuario, rol, empresa_id, casino_id, nombre, apellido, cargo, correo`,
+    [usuario, hash, rol, empresa_id || null, casino_id || null, nombre || null, apellido || null, cargo || null, correo || null]
   );
   await setEmpresaIds(rows[0].id, empresa_ids);
   res.json({ ...rows[0], empresa_ids: empresa_ids || [] });
 });
 
 router.put('/:id', auth(), permiso('usuarios','editar'), async (req, res) => {
-  const { usuario, password, rol, empresa_id, casino_id, empresa_ids } = req.body;
+  const { usuario, password, rol, empresa_id, casino_id, empresa_ids, nombre, apellido, cargo, correo } = req.body;
   let usuarioRow;
   if (password) {
     const hash = await bcrypt.hash(password, 10);
     const { rows } = await db.query(
-      `UPDATE usuarios SET usuario=$1, password_hash=$2, rol=$3, empresa_id=$4, casino_id=$5
-       WHERE id=$6 RETURNING id, usuario, rol, empresa_id, casino_id`,
-      [usuario, hash, rol, empresa_id || null, casino_id || null, req.params.id]
+      `UPDATE usuarios SET usuario=$1, password_hash=$2, rol=$3, empresa_id=$4, casino_id=$5, nombre=$6, apellido=$7, cargo=$8, correo=$9
+       WHERE id=$10 RETURNING id, usuario, rol, empresa_id, casino_id, nombre, apellido, cargo, correo`,
+      [usuario, hash, rol, empresa_id || null, casino_id || null, nombre || null, apellido || null, cargo || null, correo || null, req.params.id]
     );
     usuarioRow = rows[0];
   } else {
     const { rows } = await db.query(
-      `UPDATE usuarios SET usuario=$1, rol=$2, empresa_id=$3, casino_id=$4
-       WHERE id=$5 RETURNING id, usuario, rol, empresa_id, casino_id`,
-      [usuario, rol, empresa_id || null, casino_id || null, req.params.id]
+      `UPDATE usuarios SET usuario=$1, rol=$2, empresa_id=$3, casino_id=$4, nombre=$5, apellido=$6, cargo=$7, correo=$8
+       WHERE id=$9 RETURNING id, usuario, rol, empresa_id, casino_id, nombre, apellido, cargo, correo`,
+      [usuario, rol, empresa_id || null, casino_id || null, nombre || null, apellido || null, cargo || null, correo || null, req.params.id]
     );
     usuarioRow = rows[0];
   }

@@ -54,8 +54,8 @@ router.post('/', auth(), permiso('horarios_registro','crear'), async (req, res) 
     for (let idx = 0; idx < rows.length; idx++) {
       const r = rows[idx];
       await db.query(
-        'INSERT INTO horario_filas (horario_id, fecha, estado, entrada, salida, orden) VALUES ($1,$2,$3,$4,$5,$6)',
-        [h.id, r.fecha || null, r.estado, r.entrada || null, r.salida || null, idx]
+        'INSERT INTO horario_filas (horario_id, fecha, estado, entrada, entrada_hasta, salida, salida_hasta, orden) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)',
+        [h.id, r.fecha || null, r.estado, r.entrada || null, r.entrada_hasta || null, r.salida || null, r.salida_hasta || null, idx]
       );
     }
   }
@@ -97,8 +97,8 @@ router.put('/:id', auth(), async (req,res,next)=>{
     for (let idx = 0; idx < rows.length; idx++) {
       const r = rows[idx];
       await db.query(
-        'INSERT INTO horario_filas (horario_id, fecha, estado, entrada, salida, orden) VALUES ($1,$2,$3,$4,$5,$6)',
-        [req.params.id, r.fecha || null, r.estado, r.entrada || null, r.salida || null, idx]
+        'INSERT INTO horario_filas (horario_id, fecha, estado, entrada, entrada_hasta, salida, salida_hasta, orden) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)',
+        [req.params.id, r.fecha || null, r.estado, r.entrada || null, r.entrada_hasta || null, r.salida || null, r.salida_hasta || null, idx]
       );
     }
   }
